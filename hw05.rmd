@@ -1,0 +1,507 @@
+---
+title: "STAT 545A Homework 3"
+author: "Junbin ZHANG"
+date: "Sept 25, 2018"
+output:
+  html_document:
+    keep_md: true
+    toc: true
+    theme: readable
+---
+
+# Bring rectangular data in
+```{r}
+## load gapminder
+suppressPackageStartupMessages(library(gapminder))
+## load tidyverse
+suppressPackageStartupMessages(library(tidyverse))
+## load forcats
+suppressPackageStartupMessages(library(forcats))
+```
+
+# Part 1: Factor management
+
+## Drop Oceania
+
+Before dropping Oceania, let's check the number of rows in `gapminder`, and the levels of `continent`.
+
+```{r}
+gapminder %>% 
+  # get the number of rows and levels of continent
+  summarize(
+    nrow = nrow(gapminder),
+    nlevels = nlevels(gapminder$continent)
+  ) %>% 
+  # show the table
+  knitr::kable(col.names = c("Number of rows", "Levels of `continent`"))
+```
+
+
+Let's first try to drop Oceania, and show the number of rows, and the levels of `continent`.
+
+```{r}
+# drop Oceania
+drop <- gapminder %>% 
+  filter(continent != "Oceania")
+
+drop %>% 
+  # get the number of rows and levels of continent
+  summarize(
+    nrow = nrow(drop),
+    nlevels = nlevels(drop$continent)
+  ) %>% 
+  # show the table
+  knitr::kable(col.names = c("Number of rows after dropping", "Levels of `continent` after dropping"))
+```
+
+Here we can see, even we remove all rows associated with the `continent` of Oceania (so the number of rows decrease), the levels of `continent` is unchanged. However, it is a wrong value. To fix it, we need to `droplevels()` to solve the issue.
+
+```{r}
+# drop levels
+drop_levels <- drop %>% 
+  droplevels()
+
+drop_levels %>% 
+  # get the number of rows and levels of continent
+  summarize(
+    nrow = nrow(drop_levels),
+    nlevels = nlevels(drop_levels$continent)
+  ) %>% 
+  # show the table
+  knitr::kable(col.names = c("Number of rows after dropping levels", "Levels of `continent` after dropping levels"))
+```
+
+To summarize, we address the number of rows and the levels of `continent` before and after removing Oceania.
+
+```{r}
+# build a tibble with statistics
+summary <- cbind(
+  before = c(
+    nrow(gapminder),
+    nlevels(gapminder$continent)
+  ),
+  after = c(
+    nrow(drop_levels),
+    nlevels(drop_levels$continent)
+  )
+)
+
+# assign row names
+rownames(summary) <- c("Number of rows", "Levels")
+
+# display the table
+summary %>% 
+  knitr::kable()
+```
+
+## Reorder the levels of `country` and `continent`
+
+Let's show a preview of our dropped version of `gapminder` before reordering.
+
+```{r}
+# show previews
+head(drop_levels) %>% 
+  knitr::kable()
+
+tail(drop_levels) %>% 
+  knitr::kable()
+```
+
+From a bigger picture, this data frame is ordered by the alphabetical order of `country`. Let's try to reorder the levels of `country` by the maximum population over the years using `fct_reorder()`. Note that it is reordered in ascending order, so the first level is the one with least maximum population over the year.
+
+```{r}
+fct_reorder(
+  # reorder country
+  drop_levels$country,
+  # by pop
+  drop_levels$pop,
+  # using maximum
+  max) %>%
+  # show preview of resultant levels
+  levels() %>% 
+  head() %>% 
+  knitr::kable(col.names = c("`country` after reordering"))
+```
+
+In order to check our results, we manually calculate the maximum population and order it.
+
+```{r}
+drop_levels %>% 
+  # group by country
+  group_by(country) %>% 
+  # calcuate maximum population for each country
+  summarize(
+    max_pop = max(pop)
+  ) %>% 
+  # arrange by max_pop
+  arrange(max_pop) %>%
+  # show preview
+  head() %>% 
+  knitr::kable(col.names = c("country", "Maximum population over the years"))
+```
+
+So our operation using `fct_reorder` is correct.
+
+We can do the same thing on `continent`. For example, we reorder its levels by the average life expectancy.
+
+```{r}
+fct_reorder(
+  # reorder continent
+  drop_levels$continent,
+  # by lifeExp
+  drop_levels$lifeExp,
+  # using mean
+  mean) %>%
+  # show preview of resultant levels
+  levels() %>% 
+  head() %>% 
+  knitr::kable(col.names = c("`continent` after reordering"))
+```
+
+We also double-check the results.
+
+```{r}
+drop_levels %>% 
+  # group by continent
+  group_by(continent) %>% 
+  # calcuate mean lifeExp for each continent
+  summarize(
+    mean_lifeExp = mean(lifeExp)
+  ) %>% 
+  # arrange by mean_lifeExp
+  arrange(mean_lifeExp) %>%
+  # show preview
+  head() %>% 
+  knitr::kable(col.names = c("continent", "Average life expectancy over the years"))
+```
+
+## Characterize the (derived) data
+
+In the previous section, we try to create two examples using `fct_reorder()` and `arrange()`, with identical results. Now, we try to reuse the first example and see if these two functions affect figures generated.
+
+Let's try the first example, using `fct_reorder()` only.
+
+```{r}
+drop_levels %>%
+  # try to only show a continent
+  filter(continent == "Americas") %>% 
+  # group by country
+  group_by(country) %>% 
+  # calcuate maximum population for each country
+  mutate(
+    max_pop = max(pop)
+  ) %>%
+  # show preview of resultant levels
+  ggplot(aes(x = max_pop, y = fct_reorder(country, pop, max), color = country)) +
+  # make it a scatterplot
+  geom_point() + 
+  # scale x axis by log10
+  scale_x_log10() +
+  # change axis labels
+  xlab("Maximum population") +
+  ylab("country")
+```
+
+Let's do it with `arrange()` only.
+
+```{r}
+drop_levels %>% 
+  # try to only show a continent
+  filter(continent == "Americas") %>% 
+  # group by country
+  group_by(country) %>% 
+  # calcuate maximum population for each country
+  summarize(
+    max_pop = max(pop)
+  ) %>% 
+  # arrange by max_pop
+  arrange(max_pop) %>%
+  # show preview of resultant levels
+  ggplot(aes(x = max_pop, y = country, color = country)) +
+  # make it a scatterplot
+  geom_point() + 
+  # scale x axis by log10
+  scale_x_log10() +
+  # change axis labels
+  xlab("Maximum population") +
+  ylab("country")
+```
+
+Now we use `fct_reorder()` with `arrange()`.
+
+```{r}
+drop_levels %>% 
+  # try to only show a continent
+  filter(continent == "Americas") %>% 
+  # group by country
+  group_by(country) %>% 
+  # calcuate maximum population for each country
+  mutate(
+    max_pop = max(pop)
+  ) %>% 
+  # arrange by max_pop
+  arrange(max_pop) %>%
+  # show preview of resultant levels
+  ggplot(aes(x = max_pop, y = fct_reorder(country, pop, max), color = country)) +
+  # make it a scatterplot
+  geom_point() + 
+  # scale x axis by log10
+  scale_x_log10() +
+  # change axis labels
+  xlab("Maximum population") +
+  ylab("country")
+```
+
+**Finding(s):** using `fct_reorder()` (no matter with `arrange()` or not) will change the order of levels shown in figures, while using `arrange()` along will not affect the order of levels. 
+
+# Part 2: File I/O
+
+In order to test if mutated data can survire the round trip of writing and then reading back from a file, we first use the first example in Part 1 to mutate `gapminder`.
+
+```{r}
+data <- gapminder %>% 
+  # mutate country by maximum population
+  mutate(
+    country = fct_reorder(country, pop, max)
+  ) %>% 
+  # group by country
+  group_by(country) %>% 
+  # calculate maximum population
+  summarize(
+    max_pop = max(pop)
+  )
+  
+# show summary of the data
+data %>% 
+  glimpse()
+
+# show previews
+head(data) %>% 
+  knitr::kable()
+
+tail(data) %>% 
+  knitr::kable()
+```
+
+## `write_csv()/read_csv()`
+
+```{r}
+# write to csv
+write_csv(data, "data_csv.csv")
+# read from csv
+data_csv <- read_csv("data_csv.csv")
+
+# show summary of the data
+data_csv %>% 
+  glimpse()
+
+# show previews
+head(data_csv) %>% 
+  knitr::kable()
+
+tail(data_csv) %>% 
+  knitr::kable()
+```
+
+**Finding(s):** using CSV format, it requires R to parse each column with default formats. Therefore, the class of `country` changes from `<fct>` to `<chr>`. However, the data keeps unchanged.
+
+## `saveRDS()/readRDS()`
+
+```{r}
+# save to rds
+saveRDS(data, "data_rds.rds")
+# read from rds
+data_rds <- readRDS("data_rds.rds")
+
+# show summary of the data
+data_rds %>% 
+  glimpse()
+
+# show previews
+head(data_rds) %>% 
+  knitr::kable()
+
+tail(data_rds) %>% 
+  knitr::kable()
+```
+
+**Finding(s):** `saveRDS()` and `readRDS()` can keep both data and classes of each column.
+
+## `dput()/dget()`
+
+```{r}
+# put to file
+dput(data, "data.txt")
+# get from file
+data_get <- dget("data.txt")
+
+# show summary of the data
+data_get %>% 
+  glimpse()
+
+# show previews
+head(data_get) %>% 
+  knitr::kable()
+
+tail(data_get) %>% 
+  knitr::kable()
+```
+
+**Finding(s):** `dput()` and `dget()` can also keep both data and classes of each column.
+
+# Part 3: Visualization design
+
+# Part 4: Writing figures to file
+
+# But I want to do more!
+
+**Make a deeper exploration of the forcats packages.**
+
+According to [this reference](http://r4ds.had.co.nz/factors.html), we try to explore the following functions of forcats packages:
+
+- `fct_relevel()`;
+- `fct_reorder2()`;
+- `fct_infreq()` and `fct_rev()`;
+- `fct_recode()`;
+- `fct_collapse()`; and
+- `fct_lump()`.
+
+## `fct_relevel()`
+
+We can use `fct_relevel()` to manually reorder levels. For example, we can move Canada to be the first data in this example (which in the figure is the bottom one).
+
+```{r}
+drop_levels %>% 
+  # try to only show a continent
+  filter(continent == "Americas") %>% 
+  # group by country
+  group_by(country) %>% 
+  # calcuate maximum population for each country
+  summarize(
+    max_pop = max(pop)
+  ) %>% 
+  # arrange by max_pop
+  arrange(max_pop) %>%
+  # show preview of resultant levels
+  ggplot(aes(x = max_pop, y = fct_relevel(country, "Canada"), color = country)) +
+  # make it a scatterplot
+  geom_point() + 
+  # scale x axis by log10
+  scale_x_log10() +
+  # change axis labels
+  xlab("Maximum population") +
+  ylab("country") +
+  # highlight Canada
+  scale_y_discrete(labels = c("Canada" = expression(bold(Canada)), parse = TRUE))
+```
+
+## `fct_reorder2()`
+
+We can use `fct_reorder2()` to reorder by two variables. For example, in the following example, we reorder by population first then GDP per capita (though it is not obvious).
+
+```{r}
+gapminder %>% 
+  # show only Oceania
+  filter(continent == "Oceania") %>% 
+  # pop as x axis and gdpPercap as y axis
+  ggplot(aes(x = pop, y = gdpPercap, color = fct_reorder2(country, pop, gdpPercap, min))) +
+  # make it a line plot
+  geom_line() + 
+  # change label
+  labs(color = "Country") +
+  # scale x by log10
+  scale_x_log10()
+```
+
+## `fct_infreq()` and `fct_rev()`
+
+We use `fct_infreq()` to order levels in increasing frequency and `fct_rev()` to reverse order. They are usually used in bar plots.
+
+```{r}
+gapminder %>% 
+  # show only a continent
+  filter(continent == "Americas") %>% 
+  # filter countreis with gdpPercap larger than 15,000
+  filter(gdpPercap >= 15000) %>% 
+  # reorder levels of country
+  mutate(
+    country = country %>% fct_infreq() %>% fct_rev()
+  ) %>% 
+  # country as x axis
+  ggplot(aes(x = country, fill = country)) +
+  # make it as a bar plot
+  geom_bar()
+```
+
+
+## `fct_recode()`
+
+`fct_recode()` can be used to manully change the names of levels. For example, we try to change the name of "United States" in the above example.
+
+```{r}
+gapminder %>% 
+  # show only a continent
+  filter(continent == "Americas") %>% 
+  # filter countreis with gdpPercap larger than 15,000
+  filter(gdpPercap >= 15000) %>% 
+  # reorder levels of country, and change name of "United States"
+  mutate(
+    country = country %>% fct_infreq() %>% fct_rev() %>% 
+      fct_recode(
+        "USA" = "United States"
+      )
+  ) %>% 
+  # country as x axis
+  ggplot(aes(x = country, fill = country)) +
+  # make it as a bar plot
+  geom_bar()
+```
+
+## `fct_collapse()`
+
+We can try to use `fct_collapse()` to manually combine levels into groups. For example, we combined "Canada" and "USA" together in the above example.
+
+```{r}
+gapminder %>% 
+  # show only a continent
+  filter(continent == "Americas") %>% 
+  # filter countreis with gdpPercap larger than 15,000
+  filter(gdpPercap >= 15000) %>% 
+  # reorder levels of country, and change name of "United States", and combine "Canada" and "USA"
+  mutate(
+    country = country %>% fct_infreq() %>% fct_rev() %>% 
+      fct_recode(
+        "USA" = "United States"
+      ) %>% 
+      fct_collapse(
+        "North Americas" = c("Canada", "USA")
+      )
+  ) %>% 
+  # country as x axis
+  ggplot(aes(x = country, fill = country)) +
+  # make it as a bar plot
+  geom_bar()
+```
+
+## `fct_lump()`
+
+`fct_lump()` try to automaticaly aggregate groups.
+
+```{r}
+gapminder %>% 
+  # show only a continent
+  filter(continent == "Americas") %>% 
+  # filter countreis with gdpPercap larger than 15,000
+  filter(gdpPercap >= 15000) %>% 
+  # reorder levels of country, and let forcats lump groups for us
+  mutate(
+    country = country %>% fct_infreq() %>% fct_rev() %>% fct_lump()
+  ) %>% 
+  # country as x axis
+  ggplot(aes(x = country, fill = country)) +
+  # make it as a bar plot
+  geom_bar()
+```
+
+# Refereces
+- [R for Data Science - Factors](http://r4ds.had.co.nz/factors.html)
