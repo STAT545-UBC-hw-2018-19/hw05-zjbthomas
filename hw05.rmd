@@ -17,6 +17,8 @@ suppressPackageStartupMessages(library(gapminder))
 suppressPackageStartupMessages(library(tidyverse))
 ## load forcats
 suppressPackageStartupMessages(library(forcats))
+## load plotly
+suppressPackageStartupMessages(library(plotly))
 ```
 
 # Part 1: Factor management
@@ -354,7 +356,7 @@ tail(data_get) %>%
 Here I want to remake an figure I used in the first assignment. It tries to show the trends of population over the years for each continent.
 
 ```{r}
-gapminder %>% 
+p_ori <- gapminder %>% 
   # year as x axis and pop as y axis
   ggplot(aes(x = year, y = pop)) +
   # scale y axis by log10
@@ -365,36 +367,128 @@ gapminder %>%
   aes(color = continent) + 
   # facetting by continent
   facet_wrap(~ continent)
+p_ori
 ```
 
 We cannot get too much information for this figure. Therefore, we try to tidy up data, and make better presentation (e,g, color, size) to make it more reasonable.
 
 ```{r}
-gapminder %>% 
-  group_by(year, continent) %>% 
+# tidy up data
+tidy_up <- gapminder %>% 
+  # group by year and continent
+  group_by(year, continent) %>%
+  # calcuate summaries of pop
   summarize(
     min_pop = min(pop),
     mean_pop = mean(pop),
     max_pop = max(pop)
   ) %>% 
+  # gather pop into two columns
   gather(
     key = "pop_attribute",
     value = "pop_val",
     min_pop, mean_pop, max_pop
-  ) %>% 
-  # year as x axis and pop as y axis
+  )
+
+# make new plot
+p_new <- tidy_up %>% 
+  # year as x axis and pop as y axis, group by pop_attribute
   ggplot(aes(x = year, y = pop_val, color = pop_attribute, group = pop_attribute)) +
   # scale y axis by log10
   scale_y_log10() +
-  # make it a scatterplot, and add transparancy
-  geom_point(alpha=0.1) +
+  # make it a line plot (with points)
+  geom_point() +
   geom_line() +
   # facetting by continent
-  facet_wrap(~ continent)
+  facet_wrap(~ continent) +
+  # modify labels
+  ylab("Population distribution") +
+  scale_color_discrete("Population distribution") +
+  # make a better x axis
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 4))
+p_new
+```
+
+**Difference(s):** the color in the new figure is not for each continent, but for different distributions of each continent, which makes more sense. In addition, we try to tidy up data into different distribution attributes, so the trends over the years are clearer.
+
+`plotly` is an R package for creating interactive web-based graphs. In the following simple example, the differences of using `plotly` are:
+
+- There is a floating toolbar for users to interact with the figure, e.g saving figure, zooming.
+- When users hover on each data point, the details of that data point are shown in a floating window.
+
+```{r}
+# convert a ggplot into plotly
+ggplotly(p_new)
 ```
 
 
 # Part 4: Writing figures to file
+
+## Arguments of `ggsave()`
+
+Let's play around arguments of `ggsave()`. For example, width, height, resolution, and text scale.
+
+### Differenct widths and heights
+
+```{r}
+# default width and height
+ggsave("./ggsave/1.png")
+```
+
+![1.png](./ggsave/1.png)
+
+```{r}
+# arbitrary width and height
+ggsave("./ggsave/2.png", width = 10, height = 5)
+```
+
+![2.png](./ggsave/2.png)
+
+### Different resolutions
+
+Here we try to generate image of two resolutions, one as normal and one very low.
+
+```{r}
+# normal resolution
+ggsave("./ggsave/3.png", dpi = 300)
+```
+
+![3.png](./ggsave/3.png)
+
+```{r}
+# low resolution
+ggsave("./ggsave/4.png", dpi = 10)
+```
+![4.png](./ggsave/4.png)
+
+## Various graphics devices
+
+```{r}
+# vector format
+ggsave("./ggsave/5.eps", device = "eps")
+```
+
+*(An ESP file cannot be loaded into an HTML file, so it is ignored.)*
+
+```{r}
+# raster format
+ggsave("./ggsave/6.bmp", device = "bmp")
+```
+
+![6.bmp](./ggsave/6.bmp)
+
+The diffience is, we can still modify vector format images, while it is not possible to do it on raster format images.
+
+## Explicit provision of the plot object `p`
+
+Without explicit provision of the plot object `p`, `ggsave()` always tries to save the lastest figure (in our case, it is `p_new`). Therefore, we need to provide the plot object if we want to save other figures, for example, `p_ori`.
+
+```{r}
+# save p_ori
+ggsave("./ggsave/7.png", plot = p_ori)
+```
+
+![7.png](./ggsave/7.png)
 
 # But I want to do more!
 
