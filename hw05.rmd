@@ -351,6 +351,49 @@ tail(data_get) %>%
 
 # Part 3: Visualization design
 
+Here I want to remake an figure I used in the first assignment. It tries to show the trends of population over the years for each continent.
+
+```{r}
+gapminder %>% 
+  # year as x axis and pop as y axis
+  ggplot(aes(x = year, y = pop)) +
+  # scale y axis by log10
+  scale_y_log10() +
+  # make it a scatterplot, and add transparancy
+  geom_point(alpha = 0.1) +
+  # show colors
+  aes(color = continent) + 
+  # facetting by continent
+  facet_wrap(~ continent)
+```
+
+We cannot get too much information for this figure. Therefore, we try to tidy up data, and make better presentation (e,g, color, size) to make it more reasonable.
+
+```{r}
+gapminder %>% 
+  group_by(year, continent) %>% 
+  summarize(
+    min_pop = min(pop),
+    mean_pop = mean(pop),
+    max_pop = max(pop)
+  ) %>% 
+  gather(
+    key = "pop_attribute",
+    value = "pop_val",
+    min_pop, mean_pop, max_pop
+  ) %>% 
+  # year as x axis and pop as y axis
+  ggplot(aes(x = year, y = pop_val, color = pop_attribute, group = pop_attribute)) +
+  # scale y axis by log10
+  scale_y_log10() +
+  # make it a scatterplot, and add transparancy
+  geom_point(alpha=0.1) +
+  geom_line() +
+  # facetting by continent
+  facet_wrap(~ continent)
+```
+
+
 # Part 4: Writing figures to file
 
 # But I want to do more!
