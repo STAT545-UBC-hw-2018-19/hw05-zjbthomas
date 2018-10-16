@@ -201,7 +201,11 @@ drop_levels %>%
   scale_x_log10() +
   # change axis labels
   xlab("Maximum population") +
-  ylab("country")
+  ylab("country") +
+  # add title
+  labs(title = "Maximum population of countries in Americas") +
+  # change theme
+  theme_bw()
 ```
 
 Let's do it with `arrange()` only.
@@ -226,7 +230,11 @@ drop_levels %>%
   scale_x_log10() +
   # change axis labels
   xlab("Maximum population") +
-  ylab("country")
+  ylab("country") +
+  # add title
+  labs(title = "Maximum population of countries in Americas") +
+  # change theme
+  theme_bw()
 ```
 
 Now we use `fct_reorder()` with `arrange()`.
@@ -251,7 +259,11 @@ drop_levels %>%
   scale_x_log10() +
   # change axis labels
   xlab("Maximum population") +
-  ylab("country")
+  ylab("country") +
+  # add title
+  labs(title = "Maximum population of countries in Americas") +
+  # change theme
+  theme_bw()
 ```
 
 **Finding(s):** using `fct_reorder()` (no matter with `arrange()` or not) will change the order of levels shown in figures, while using `arrange()` along will not affect the order of levels. 
@@ -356,6 +368,7 @@ tail(data_get) %>%
 Here I want to remake an figure I used in the first assignment. It tries to show the trends of population over the years for each continent.
 
 ```{r}
+# this is the figure copy from assignment 1, so no fancy operation is done
 p_ori <- gapminder %>% 
   # year as x axis and pop as y axis
   ggplot(aes(x = year, y = pop)) +
@@ -404,8 +417,18 @@ p_new <- tidy_up %>%
   # modify labels
   ylab("Population distribution") +
   scale_color_discrete("Population distribution") +
+  # add title
+  labs(
+    title = "Population distribution of each continent over the years"
+  ) +
   # make a better x axis
-  scale_x_continuous(breaks = scales::pretty_breaks(n = 4))
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 4)) +
+  # add theme
+  theme_bw() +
+  theme(
+    strip.background = element_rect(fill = "grey"),
+    panel.background = element_rect(fill = "white")
+  )
 p_new
 ```
 
@@ -421,6 +444,33 @@ p_new
 ggplotly(p_new)
 ```
 
+In addition, we can make 3D plot using `plotly`.
+
+```{r}
+gapminder %>% 
+  # group by year and continent
+  group_by(year, continent) %>%
+  # calcuate summaries of pop
+  summarize(
+    max_pop = max(pop)
+  ) %>% 
+  group_by(continent) %>% 
+  plot_ly(
+    x = ~year,
+    y = ~continent,
+    z = ~max_pop,
+    type = "scatter3d",
+    mode = "markers + lines",
+    color = ~continent
+  ) %>% 
+  layout(
+    scene = list(
+      xaxis = list(title = "Year"),
+      yaxis = list(title = "Continent"),
+      zaxis = list(title = "Maximum Population")
+    )
+  )
+```
 
 # Part 4: Writing figures to file
 
@@ -477,7 +527,7 @@ ggsave("./ggsave/6.bmp", device = "bmp")
 
 ![6.bmp](./ggsave/6.bmp)
 
-The diffience is, we can still modify vector format images, while it is not possible to do it on raster format images.
+The diffience is, vector format images store polygons, so when it is scaled, the polygons are scaled as well, so they always look the same. While for raster format images, pixels are stored, so image becomes blurry when scaled up.
 
 ## Explicit provision of the plot object `p`
 
@@ -528,8 +578,16 @@ drop_levels %>%
   # change axis labels
   xlab("Maximum population") +
   ylab("country") +
+  # add title
+  labs(title = "Maximum population of countries in Americas") +
   # highlight Canada
-  scale_y_discrete(labels = c("Canada" = expression(bold(Canada)), parse = TRUE))
+  scale_y_discrete(labels = c("Canada" = expression(bold(Canada)), parse = TRUE)) +
+  # add theme
+  theme_bw() +
+  theme(
+    strip.background = element_rect(fill = "grey"),
+    panel.background = element_rect(fill = "white")
+  )
 ```
 
 ## `fct_reorder2()`
@@ -546,8 +604,16 @@ gapminder %>%
   geom_line() + 
   # change label
   labs(color = "Country") +
+  # add title
+  labs(
+    x = "Population",
+    y = "GDP per capita",
+    title = "GDP per capita vs population"
+  ) +
   # scale x by log10
-  scale_x_log10()
+  scale_x_log10() +
+  # add theme
+  theme_bw()
 ```
 
 ## `fct_infreq()` and `fct_rev()`
@@ -567,7 +633,15 @@ gapminder %>%
   # country as x axis
   ggplot(aes(x = country, fill = country)) +
   # make it as a bar plot
-  geom_bar()
+  geom_bar() +
+  # add title
+  labs(
+    x = "Country",
+    y = "Count",
+    title = "Number of years with GDP per capita >= 15,000"
+  ) +
+  # add theme
+  theme_bw()
 ```
 
 
@@ -591,7 +665,15 @@ gapminder %>%
   # country as x axis
   ggplot(aes(x = country, fill = country)) +
   # make it as a bar plot
-  geom_bar()
+  geom_bar() +
+  # add title
+  labs(
+    x = "Country",
+    y = "Count",
+    title = "Number of years with GDP per capita >= 15,000"
+  ) +
+  # add theme
+  theme_bw()
 ```
 
 ## `fct_collapse()`
@@ -617,7 +699,15 @@ gapminder %>%
   # country as x axis
   ggplot(aes(x = country, fill = country)) +
   # make it as a bar plot
-  geom_bar()
+  geom_bar() +
+  # add title
+  labs(
+    x = "Country",
+    y = "Count",
+    title = "Number of years with GDP per capita >= 15,000"
+  ) +
+  # add theme
+  theme_bw()
 ```
 
 ## `fct_lump()`
@@ -637,7 +727,15 @@ gapminder %>%
   # country as x axis
   ggplot(aes(x = country, fill = country)) +
   # make it as a bar plot
-  geom_bar()
+  geom_bar() +
+  # add title
+  labs(
+    x = "Country",
+    y = "Count",
+    title = "Number of years with GDP per capita >= 15,000"
+  ) +
+  # add theme
+  theme_bw()
 ```
 
 # Refereces
