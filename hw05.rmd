@@ -508,7 +508,9 @@ gapminder %>%
   summarize(
     max_pop = max(pop)
   ) %>% 
+  # group by continent
   group_by(continent) %>% 
+  # make a 3D plot
   plot_ly(
     x = ~year,
     y = ~continent,
@@ -517,6 +519,7 @@ gapminder %>%
     mode = "markers + lines",
     color = ~continent
   ) %>% 
+  # change layout of the 3D plot
   layout(
     scene = list(
       xaxis = list(title = "Year"),
