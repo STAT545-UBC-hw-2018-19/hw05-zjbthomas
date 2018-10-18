@@ -440,7 +440,7 @@ p_new
 
 **Difference(s):** the color in the new figure is not for each continent, but for different distributions of each continent, which makes more sense. In addition, we try to tidy up data into different distribution attributes, so the trends over the years are clearer.
 
-Let's create a new plot. In this new plot, we show maximum GDP per capita of each country in continent Americas. In addition, to make the figure clearer, we only show countries with maximum GDP per capita larger than 12,000.
+Let's create a new plot. In this new plot, we show maximum GDP per capita of each country in continent Americas. In addition, to make the figure clearer, we only show countries with maximum GDP per capita larger than 13,000.
 
 ```{r}
 # tidy up data
@@ -453,8 +453,8 @@ tidy_up_gdp <- gapminder %>%
   summarize(
     max_gdp = max(gdpPercap)
   ) %>% 
-  # filter maximum GDP per capita that are bigger than 12,000
-  filter(max_gdp >= 12000)
+  # filter maximum GDP per capita that are bigger than 13,000
+  filter(max_gdp >= 13000)
 
 # make new plot
 p_new_gdp <- tidy_up_gdp %>% 
