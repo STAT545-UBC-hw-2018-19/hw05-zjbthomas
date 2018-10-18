@@ -19,6 +19,8 @@ suppressPackageStartupMessages(library(tidyverse))
 suppressPackageStartupMessages(library(forcats))
 ## load plotly
 suppressPackageStartupMessages(library(plotly))
+## load scale
+suppressPackageStartupMessages(library(scales))
 ```
 
 # Part 1: Factor management
@@ -297,7 +299,7 @@ tail(data) %>%
   knitr::kable()
 ```
 
-## `write_csv()/read_csv()`
+## `write_csv()`/`read_csv()`
 
 ```{r}
 # write to csv
@@ -319,7 +321,7 @@ tail(data_csv) %>%
 
 **Finding(s):** using CSV format, it requires R to parse each column with default formats. Therefore, the class of `country` changes from `<fct>` to `<chr>`. However, the data keeps unchanged.
 
-## `saveRDS()/readRDS()`
+## `saveRDS()`/`readRDS()`
 
 ```{r}
 # save to rds
@@ -341,7 +343,7 @@ tail(data_rds) %>%
 
 **Finding(s):** `saveRDS()` and `readRDS()` can keep both data and classes of each column.
 
-## `dput()/dget()`
+## `dput()`/`dget()`
 
 ```{r}
 # put to file
@@ -364,6 +366,10 @@ tail(data_get) %>%
 **Finding(s):** `dput()` and `dget()` can also keep both data and classes of each column.
 
 # Part 3: Visualization design
+
+## Task 1
+
+**Remake at least one figure or create a new one, in light of something you learned in the recent class meetings about visualization design and color.**
 
 Here I want to remake an figure I used in the first assignment. It tries to show the trends of population over the years for each continent.
 
@@ -434,6 +440,54 @@ p_new
 
 **Difference(s):** the color in the new figure is not for each continent, but for different distributions of each continent, which makes more sense. In addition, we try to tidy up data into different distribution attributes, so the trends over the years are clearer.
 
+Let's create a new plot. In this new plot, we show maximum GDP per capita of each country in continent Americas. In addition, to make the figure clearer, we only show countries with maximum GDP per capita larger than 10,000.
+
+```{r}
+# tidy up data
+tidy_up_gdp <- gapminder %>% 
+  # filter only countries in Americas
+  filter(continent == "Americas") %>% 
+  # group by country
+  group_by(country) %>%
+  # calcuate summaries of pop
+  summarize(
+    max_gdp = max(gdpPercap)
+  ) %>% 
+  # filter maximum GDP per capita that are bigger than 10,000
+  filter(max_gdp >= 10000)
+
+# make new plot
+p_new_gdp <- tidy_up_gdp %>% 
+  # country as x axis and max_gdp as y axis
+  ggplot(aes(x = country, y = max_gdp)) +
+  # make it a scatterplot, change size as max_gdp, and fill by country
+  geom_point(aes(size = max_gdp, fill = country), pch = 21) +
+  # change color based on gapminder country color scheme
+  scale_fill_manual(values = country_colors) +
+  # change format of size
+  scale_size_continuous(
+    labels = dollar_format()
+  ) +
+  # add labels
+  labs(
+    x = "Country",
+    y = "Maximum GDP per Capita",
+    title = "Maximum GDP per Capita over 10,000 for countries in Americas",
+    size = "Maximum GDP per Capita",
+    fill = "Country"
+  ) +
+  # add theme
+  theme_bw() +
+  theme(
+    axis.text = element_text(size = 6)
+  )
+p_new_gdp
+```
+
+## Task 2
+
+**Make a new graph by converting this visual (or another, if you’d like) to a `plotly` graph.**
+
 `plotly` is an R package for creating interactive web-based graphs. In the following simple example, the differences of using `plotly` are:
 
 - There is a floating toolbar for users to interact with the figure, e.g saving figure, zooming.
@@ -441,7 +495,7 @@ p_new
 
 ```{r}
 # convert a ggplot into plotly
-ggplotly(p_new)
+ggplotly(p_new_gdp)
 ```
 
 In addition, we can make 3D plot using `plotly`.
@@ -515,10 +569,10 @@ ggsave("./ggsave/4.png", dpi = 10)
 
 ```{r}
 # vector format
-ggsave("./ggsave/5.eps", device = "eps")
+ggsave("./ggsave/5.svg", device = "svg")
 ```
 
-*(An ESP file cannot be loaded into an HTML file, so it is ignored.)*
+![5.svg](./ggsave/5.svg)
 
 ```{r}
 # raster format
@@ -531,11 +585,11 @@ The diffience is, vector format images store polygons, so when it is scaled, the
 
 ## Explicit provision of the plot object `p`
 
-Without explicit provision of the plot object `p`, `ggsave()` always tries to save the lastest figure (in our case, it is `p_new`). Therefore, we need to provide the plot object if we want to save other figures, for example, `p_ori`.
+Without explicit provision of the plot object `p`, `ggsave()` always tries to save the lastest figure (in our case, it is `p_new_gdp`). Therefore, we need to provide the plot object if we want to save other figures, for example, `p_new`.
 
 ```{r}
 # save p_ori
-ggsave("./ggsave/7.png", plot = p_ori)
+ggsave("./ggsave/7.png", plot = p_new)
 ```
 
 ![7.png](./ggsave/7.png)
@@ -738,5 +792,5 @@ gapminder %>%
   theme_bw()
 ```
 
-# Refereces
+# References
 - [R for Data Science - Factors](http://r4ds.had.co.nz/factors.html)
